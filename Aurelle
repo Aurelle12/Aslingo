@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SignaPath – Learn ASL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f6f7fb;
+  text-align: center;
+}
+header {
+  background: #58cc02;
+  color: white;
+  padding: 20px;
+}
+.levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+.level {
+  background: white;
+  padding: 15px;
+  border-radius: 14px;
+  box-shadow: 0 6px 12px rgba(0,0,0,.1);
+  cursor: pointer;
+}
+.lesson {
+  display: none;
+  background: white;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 14px;
+}
+img {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 12px;
+}
+button {
+  margin-top: 15px;
+  padding: 12px 20px;
+  border: none;
+  background: #58cc02;
+  color: white;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.qr {
+  margin: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🤟 SignaPath</h1>
+  <p>Learn American Sign Language – Duolingo style</p>
+</header>
+
+<div class="qr">
+  <p>Scan to open this website</p>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://aurelle12.github.io/Aslingo/">
+</div>
+
+<div class="levels">
+  <div class="level" onclick="openLesson(1)">Level 1<br>Alphabet</div>
+  <div class="level" onclick="openLesson(2)">Level 2<br>Common Phrases</div>
+  <div class="level" onclick="openLesson(3)">Level 3<br>Daily Questions</div>
+</div>
+
+<div class="lesson" id="lessonBox">
+  <h2 id="lessonTitle"></h2>
+  <p id="lessonText"></p>
+  <img id="lessonImage" src="">
+  <br>
+  <button onclick="next()">Next</button>
+</div>
+
+<script>
+const lessons = {
+  1: {
+    title: "Level 1 – ASL Alphabet",
+    steps: [
+      "ASL Letter A",
+      "ASL Letter B",
+      "ASL Letter C"
+    ]
+  },
+  2: {
+    title: "Level 2 – Common Phrases",
+    steps: [
+      "Hello",
+      "Thank you",
+      "How are you?"
+    ]
+  },
+  3: {
+    title: "Level 3 – Daily Questions",
+    steps: [
+      "What is your name?",
+      "Where are you from?",
+      "How old are you?"
+    ]
+  }
+};
+
+let current = [];
+let index = 0;
+
+function openLesson(level) {
+  current = lessons[level].steps;
+  index = 0;
+  document.getElementById("lessonTitle").innerText = lessons[level].title;
+  document.getElementById("lessonText").innerText = current[index];
+  document.getElementById("lessonImage").src =
+    "https://via.placeholder.com/300x200?text=ASL+Sign";
+  document.getElementById("lessonBox").style.display = "block";
+}
+
+function next() {
+  index++;
+  if (index < current.length) {
+    document.getElementById("lessonText").innerText = current[index];
+  } else {
+    document.getElementById("lessonText").innerText = "🎉 Lesson Complete!";
+  }
+}
+</script>
+
+</body>
+</html>
