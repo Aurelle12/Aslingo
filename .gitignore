@@ -1,6 +1,153 @@
-*.i
-*.ii
-*.gpu
-*.ptx
-*.cubin
-*.fatbin
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SignaPop – Learn ASL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="https://emojiapi.dev/api/v1/sign_of_the_horns/64.png">
+<style>
+body {
+  margin:0;
+  font-family: system-ui, sans-serif;
+  background:#f4f7fb;
+}
+header {
+  background:#58cc02;
+  color:white;
+  padding:20px;
+  text-align:center;
+}
+.levels {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:15px;
+  padding:20px;
+}
+.level {
+  background:white;
+  border-radius:16px;
+  padding:15px;
+  text-align:center;
+  box-shadow:0 8px 15px rgba(0,0,0,.1);
+  cursor:pointer;
+}
+.level.locked {opacity:.4}
+.lessonBox {
+  display:none;
+  background:white;
+  margin:20px;
+  padding:20px;
+  border-radius:16px;
+}
+.lessonBox img {
+  max-width:100%;
+  border-radius:12px;
+}
+button {
+  background:#58cc02;
+  border:none;
+  padding:12px 20px;
+  color:white;
+  border-radius:10px;
+  font-size:16px;
+  margin-top:10px;
+}
+video {
+  width:100%;
+  margin-top:10px;
+  border-radius:12px;
+}
+.qr {
+  text-align:center;
+  margin:20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🤟 SignaPop</h1>
+  <p>Learn ASL — Levels, Lessons & Practice</p>
+</header>
+
+<div class="qr">
+  <p>📱 Scan to open this site</p>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://aurelle12.github.io/Aslingo/">
+</div>
+
+<div class="levels" id="levels"></div>
+
+<div class="lessonBox" id="lessonBox">
+  <h2 id="lessonTitle"></h2>
+  <p id="lessonText"></p>
+  <img id="lessonImage" src="">
+  <video id="camera" autoplay muted></video>
+  <br>
+  <button onclick="nextLesson()">Next Lesson</button>
+</div>
+
+<script>
+const levels = [];
+for(let i=1;i<=30;i++){
+  levels.push({
+    title:Level ${i},
+    lessons:[
+      Lesson 1 of Level ${i},
+      Lesson 2 of Level ${i},
+      Lesson 3 of Level ${i},
+      Lesson 4 of Level ${i},
+      Lesson 5 of Level ${i},
+      Lesson 6 of Level ${i}
+    ]
+  });
+}
+
+const levelContainer=document.getElementById("levels");
+levels.forEach((lvl,i)=>{
+  const d=document.createElement("div");
+  d.className="level"+(i>5?" locked":"");
+  d.innerHTML=<h3>${lvl.title}</h3><p>6 Lessons</p>;
+  d.onclick=()=> i<=5 && startLevel(i);
+  levelContainer.appendChild(d);
+});
+
+let currentLevel=0;
+let lessonIndex=0;
+
+function startLevel(i){
+  currentLevel=i;
+  lessonIndex=0;
+  document.getElementById("lessonBox").style.display="block";
+  loadLesson();
+  startCamera();
+}
+
+function loadLesson(){
+  document.getElementById("lessonTitle").innerText=
+    Level ${currentLevel+1} – Lesson ${lessonIndex+1};
+  document.getElementById("lessonText").innerText=
+    levels[currentLevel].lessons[lessonIndex];
+  document.getElementById("lessonImage").src=
+    https://via.placeholder.com/400x300?text=ASL+Sign;
+}
+
+function nextLesson(){
+  lessonIndex++;
+  if(lessonIndex<6){
+    loadLesson();
+  } else {
+    document.getElementById("lessonText").innerText="🎉 Level Complete!";
+  }
+}
+
+function startCamera(){
+  navigator.mediaDevices.getUserMedia({video:true})
+    .then(stream=>{
+      document.getElementById("camera").srcObject=stream;
+    });
+}
+</script>
+
+</body>
+</html>
