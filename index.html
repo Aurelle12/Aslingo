@@ -1,96 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ASLingo – Learn ASL</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>ASLingo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root {
-      --green: #58cc02;
-      --blue: #1cb0f6;
-      --purple: #a560ff;
-      --orange: #ff9600;
-      --bg: #f6f7fb;
-      --dark: #2d2d2d;
-    }
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: var(--bg);
-      color: var(--dark);
-    }
-    header {
-      background: linear-gradient(135deg, var(--green), var(--blue));
-      color: white;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      background: #f6f7fb;
       text-align: center;
     }
-    header h1 { margin: 0; font-size: 2.5rem; }
-    main { max-width: 1100px; margin: 2rem auto; padding: 1rem; }
+    header {
+      background: #58cc02;
+      color: white;
+      padding: 20px;
+    }
     .levels {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 30px;
     }
     .level {
       background: white;
-      border-radius: 20px;
-      padding: 1.5rem;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
-      text-align: center;
+      padding: 20px;
+      border-radius: 16px;
       cursor: pointer;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
     }
-    .badge {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      margin: 0 auto 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
+    .level:hover {
+      transform: scale(1.05);
+    }
+    .lesson {
+      display: none;
+      background: white;
+      margin: 20px;
+      padding: 30px;
+      border-radius: 16px;
+    }
+    button {
+      background: #58cc02;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
       color: white;
-    }
-    .green { background: var(--green); }
-    .blue { background: var(--blue); }
-    .purple { background: var(--purple); }
-    footer {
-      text-align: center;
-      padding: 2rem;
-      opacity: .6;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>ASLingo</h1>
-    <p>Learn American Sign Language — fun, visual, and made for teens & adults</p>
-  </header>
 
-  <main>
-    <section class="levels">
-      <div class="level">
-        <div class="badge green">1</div>
-        <h3>Basics</h3>
-        <p>Alphabet & greetings</p>
-      </div>
-      <div class="level">
-        <div class="badge blue">2</div>
-        <h3>Common Words</h3>
-        <p>Everyday signs</p>
-      </div>
-      <div class="level">
-        <div class="badge purple">3</div>
-        <h3>Sentences</h3>
-        <p>Put it together</p>
-      </div>
-    </section>
-  </main>
+<header>
+  <h1>ASLingo</h1>
+  <p>Learn American Sign Language — Duolingo style</p>
+</header>
 
-  <footer>
-    School Project • ASL Learning Website
-  </footer>
+<div class="levels">
+  <div class="level" onclick="startLesson(1)">
+    <h2>Level 1</h2>
+    <p>Alphabet & Greetings</p>
+  </div>
+  <div class="level" onclick="startLesson(2)">
+    <h2>Level 2</h2>
+    <p>Common Words</p>
+  </div>
+  <div class="level" onclick="startLesson(3)">
+    <h2>Level 3</h2>
+    <p>Simple Sentences</p>
+  </div>
+</div>
+
+<div class="lesson" id="lessonBox">
+  <h2 id="lessonTitle"></h2>
+  <p id="lessonContent"></p>
+  <button onclick="nextStep()">Next</button>
+</div>
+
+<script>
+  const lessons = {
+    1: {
+      title: "Level 1: Basics",
+      steps: [
+        "👋 This sign means HELLO",
+        "🤟 This sign means I LOVE YOU",
+        "👍 This sign means GOOD / YES"
+      ]
+    },
+    2: {
+      title: "Level 2: Common Words",
+      steps: [
+        "🙏 PLEASE",
+        "❤️ LOVE",
+        "❓ QUESTION"
+      ]
+    },
+    3: {
+      title: "Level 3: Sentences",
+      steps: [
+        "👋❤️ Hello, I love you",
+        "👍🤟 Yes, I love ASL",
+        "🙏👋 Please hello"
+      ]
+    }
+  };
+
+  let currentLesson = [];
+  let step = 0;
+
+  function startLesson(level) {
+    currentLesson = lessons[level].steps;
+    step = 0;
+    document.getElementById("lessonTitle").innerText = lessons[level].title;
+    document.getElementById("lessonContent").innerText = currentLesson[step];
+    document.getElementById("lessonBox").style.display = "block";
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
+  function nextStep() {
+    step++;
+    if (step < currentLesson.length) {
+      document.getElementById("lessonContent").innerText = currentLesson[step];
+    } else {
+      document.getElementById("lessonContent").innerText = "🎉 Lesson complete!";
+    }
+  }
+</script>
+
 </body>
 </html>
