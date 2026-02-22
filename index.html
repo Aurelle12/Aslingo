@@ -1,152 +1,178 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>SignaPop – Learn ASL</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="https://emojiapi.dev/api/v1/sign_of_the_horns/64.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignQuest</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 body {
   margin:0;
-  font-family: system-ui, sans-serif;
-  background:#f4f7fb;
+  font-family: Arial, sans-serif;
+  background:#f5f7fb;
+  text-align:center;
 }
 header {
   background:#58cc02;
   color:white;
   padding:20px;
-  text-align:center;
 }
-.levels {
+.level-grid {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(100px,1fr));
   gap:15px;
   padding:20px;
 }
 .level {
   background:white;
-  border-radius:16px;
   padding:15px;
-  text-align:center;
-  box-shadow:0 8px 15px rgba(0,0,0,.1);
+  border-radius:15px;
   cursor:pointer;
+  box-shadow:0 5px 10px rgba(0,0,0,0.1);
 }
-.level.locked {opacity:.4}
-.lessonBox {
+.locked {
+  opacity:0.4;
+  cursor:not-allowed;
+}
+.lesson-box {
   display:none;
   background:white;
   margin:20px;
-  padding:20px;
-  border-radius:16px;
-}
-.lessonBox img {
-  max-width:100%;
-  border-radius:12px;
+  padding:25px;
+  border-radius:15px;
 }
 button {
-  background:#58cc02;
+  padding:10px 20px;
   border:none;
-  padding:12px 20px;
-  color:white;
   border-radius:10px;
+  background:#58cc02;
+  color:white;
   font-size:16px;
+  cursor:pointer;
   margin-top:10px;
 }
-video {
-  width:100%;
-  margin-top:10px;
-  border-radius:12px;
+.progress {
+  height:15px;
+  background:#ddd;
+  border-radius:10px;
+  margin:15px;
 }
-.qr {
-  text-align:center;
-  margin:20px;
+.progress-bar {
+  height:100%;
+  background:#58cc02;
+  width:0%;
+  border-radius:10px;
+}
+#camera {
+  display:none;
+  margin-top:10px;
+}
+footer {
+  margin-top:30px;
+  padding:20px;
+  font-size:14px;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-  <h1>🤟 SignaPop</h1>
-  <p>Learn ASL — Levels, Lessons & Practice</p>
+<h1>SignQuest ✋</h1>
+<p>Master ASL – 30 Levels</p>
+<p>XP: <span id="xp">0</span></p>
 </header>
 
-<div class="qr">
-  <p>📱 Scan to open this site</p>
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://aurelle12.github.io/Aslingo/">
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+<div class="level-grid" id="levels"></div>
+
+<div class="lesson-box" id="lessonBox">
+<h2 id="lessonTitle"></h2>
+<p id="lessonContent" style="font-size:40px;"></p>
+<button onclick="nextLesson()">Next</button>
+<button onclick="startCamera()">Camera Mode</button>
+<video id="camera" width="200" autoplay></video>
 </div>
 
-<div class="levels" id="levels"></div>
+<h3>Scan QR to open this site</h3>
+<canvas id="qr"></canvas>
 
-<div class="lessonBox" id="lessonBox">
-  <h2 id="lessonTitle"></h2>
-  <p id="lessonText"></p>
-  <img id="lessonImage" src="">
-  <video id="camera" autoplay muted></video>
-  <br>
-  <button onclick="nextLesson()">Next Lesson</button>
-</div>
+<footer>
+SignQuest – ASL Learning Platform
+</footer>
 
 <script>
-const levels = [];
-for(let i=1;i<=30;i++){
-  levels.push({
-    title:`Level ${i}`,
-    lessons:[
-      `Lesson 1 of Level ${i}`,
-      `Lesson 2 of Level ${i}`,
-      `Lesson 3 of Level ${i}`,
-      `Lesson 4 of Level ${i}`,
-      `Lesson 5 of Level ${i}`,
-      `Lesson 6 of Level ${i}`
-    ]
-  });
-}
+let xp = localStorage.getItem("xp") || 0;
+let unlocked = localStorage.getItem("unlocked") || 1;
+xp = parseInt(xp);
+unlocked = parseInt(unlocked);
+document.getElementById("xp").innerText = xp;
 
-const levelContainer=document.getElementById("levels");
-levels.forEach((lvl,i)=>{
-  const d=document.createElement("div");
-  d.className="level"+(i>5?" locked":"");
-  d.innerHTML=`<h3>${lvl.title}</h3><p>6 Lessons</p>`;
-  d.onclick=()=> i<=5 && startLevel(i);
-  levelContainer.appendChild(d);
-});
+const levelsDiv = document.getElementById("levels");
+for(let i=1;i<=30;i++){
+  const div=document.createElement("div");
+  div.className="level";
+  if(i>unlocked) div.classList.add("locked");
+  div.innerText="Level "+i;
+  div.onclick=()=>{ if(i<=unlocked) startLevel(i); };
+  levelsDiv.appendChild(div);
+}
 
 let currentLevel=0;
-let lessonIndex=0;
+let lessonStep=0;
 
-function startLevel(i){
-  currentLevel=i;
-  lessonIndex=0;
+function startLevel(level){
+  currentLevel=level;
+  lessonStep=0;
   document.getElementById("lessonBox").style.display="block";
-  loadLesson();
-  startCamera();
+  showLesson();
 }
 
-function loadLesson(){
-  document.getElementById("lessonTitle").innerText=
-    `Level ${currentLevel+1} – Lesson ${lessonIndex+1}`;
-  document.getElementById("lessonText").innerText=
-    levels[currentLevel].lessons[lessonIndex];
-  document.getElementById("lessonImage").src=
-    `https://via.placeholder.com/400x300?text=ASL+Sign`;
+function showLesson(){
+  document.getElementById("lessonTitle").innerText="Level "+currentLevel+" - Lesson "+(lessonStep+1);
+  document.getElementById("lessonContent").innerText=getLessonContent(currentLevel,lessonStep);
+  updateProgress();
 }
 
 function nextLesson(){
-  lessonIndex++;
-  if(lessonIndex<6){
-    loadLesson();
+  lessonStep++;
+  if(lessonStep<6){
+    showLesson();
   } else {
-    document.getElementById("lessonText").innerText="🎉 Level Complete!";
+    xp+=10;
+    document.getElementById("xp").innerText=xp;
+    localStorage.setItem("xp",xp);
+    if(currentLevel===unlocked){
+      unlocked++;
+      localStorage.setItem("unlocked",unlocked);
+    }
+    alert("Level Complete! +10 XP 🎉");
+    location.reload();
   }
 }
 
-function startCamera(){
-  navigator.mediaDevices.getUserMedia({video:true})
-    .then(stream=>{
-      document.getElementById("camera").srcObject=stream;
-    });
+function updateProgress(){
+  const percent=((lessonStep)/6)*100;
+  document.getElementById("progressBar").style.width=percent+"%";
 }
+
+function getLessonContent(level,step){
+  const alphabet=["🅰️","🅱️","🅲️","🅳️","🅴️","🅵️"];
+  const phrases=["👋","🙏","👍","🤟","❤️","❓"];
+  if(level===1) return alphabet[step];
+  if(level===2) return phrases[step];
+  if(level===3) return "How are you? 🤔";
+  return "ASL Sign Practice ✋ (Level "+level+")";
+}
+
+function startCamera(){
+  const video=document.getElementById("camera");
+  video.style.display="block";
+  navigator.mediaDevices.getUserMedia({video:true})
+    .then(stream=>{video.srcObject=stream;});
+}
+
+QRCode.toCanvas(document.getElementById('qr'), window.location.href);
 </script>
 
 </body>
