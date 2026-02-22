@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SignQuest</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
 <style>
 body {
   margin:0;
-  font-family: 'Segoe UI', sans-serif;
-  background:#f4f8ff;
+  font-family:Arial, sans-serif;
+  background:#f4f7fb;
   text-align:center;
 }
 header {
@@ -17,53 +18,41 @@ header {
   color:white;
   padding:20px;
 }
+button {
+  padding:10px 18px;
+  border:none;
+  border-radius:12px;
+  background:#58cc02;
+  color:white;
+  cursor:pointer;
+  margin:5px;
+}
 .level-grid {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
-  gap:15px;
+  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+  gap:10px;
   padding:20px;
 }
 .level {
   background:white;
   padding:15px;
-  border-radius:20px;
+  border-radius:15px;
   cursor:pointer;
-  box-shadow:0 6px 12px rgba(0,0,0,0.1);
-  transition:0.2s;
+  box-shadow:0 4px 8px rgba(0,0,0,0.1);
 }
-.level:hover { transform:scale(1.05); }
 .locked { opacity:0.4; cursor:not-allowed; }
-
 .lesson-box {
   display:none;
-  background:white;
   margin:20px;
-  padding:25px;
-  border-radius:20px;
-  box-shadow:0 6px 12px rgba(0,0,0,0.1);
+  padding:20px;
+  background:white;
+  border-radius:15px;
 }
-
-img {
-  width:200px;
-  margin:15px;
-}
-
-button {
-  padding:10px 20px;
-  border:none;
-  border-radius:12px;
-  background:#58cc02;
-  color:white;
-  font-size:16px;
-  cursor:pointer;
-  margin:10px;
-}
-
 .progress {
-  height:15px;
+  height:12px;
   background:#ddd;
+  margin:10px;
   border-radius:10px;
-  margin:15px;
 }
 .progress-bar {
   height:100%;
@@ -71,19 +60,25 @@ button {
   width:0%;
   border-radius:10px;
 }
-
-.music-btn {
-  background:#1cb0f6;
+iframe {
+  width:100%;
+  max-width:500px;
+  height:280px;
+  border-radius:12px;
 }
+#camera { display:none; margin-top:10px; }
+footer { margin-top:20px; padding:20px; font-size:14px; }
 </style>
 </head>
+
 <body>
 
 <header>
 <h1>SignQuest ✋</h1>
-<p>Learn ASL the Fun Way</p>
+<p>Master ASL – 30 Levels</p>
 <p>XP: <span id="xp">0</span></p>
-<button class="music-btn" onclick="toggleMusic()">Toggle Music 🎵</button>
+<button onclick="startApp()">Start Learning</button>
+<button onclick="toggleMusic()">🔊 Toggle Music</button>
 </header>
 
 <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
@@ -92,29 +87,66 @@ button {
 
 <div class="lesson-box" id="lessonBox">
 <h2 id="lessonTitle"></h2>
-<img id="lessonImage">
-<p id="lessonText"></p>
+<iframe id="videoFrame" src="" allowfullscreen></iframe>
+<br>
 <button onclick="nextLesson()">Next</button>
+<button onclick="startCamera()">Camera Mode</button>
+<video id="camera" width="200" autoplay></video>
 </div>
 
+<h3>Scan QR to open this site</h3>
+<canvas id="qr"></canvas>
+
+<footer>
+SignQuest – ASL Learning Platform
+</footer>
+
 <audio id="bgMusic" loop>
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=happy-day-113985.mp3" type="audio/mpeg">
+<source src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9bfa52.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="clickSound">
+<source src="https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a73467.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-let xp = localStorage.getItem("xp") || 0;
-let unlocked = localStorage.getItem("unlocked") || 1;
-xp = parseInt(xp);
-unlocked = parseInt(unlocked);
-document.getElementById("xp").innerText = xp;
+let xp = parseInt(localStorage.getItem("xp")||0);
+let unlocked = parseInt(localStorage.getItem("unlocked")||1);
+document.getElementById("xp").innerText=xp;
 
-const levelsDiv = document.getElementById("levels");
+const alphabetVideos=[
+"https://www.youtube.com/embed/3QzDkE9lY5A",
+"https://www.youtube.com/embed/3QzDkE9lY5A?start=30",
+"https://www.youtube.com/embed/3QzDkE9lY5A?start=60",
+"https://www.youtube.com/embed/3QzDkE9lY5A?start=90",
+"https://www.youtube.com/embed/3QzDkE9lY5A?start=120",
+"https://www.youtube.com/embed/3QzDkE9lY5A?start=150"
+];
 
+const phraseVideos=[
+"https://www.youtube.com/embed/k9c1vJXn6u4",
+"https://www.youtube.com/embed/k9c1vJXn6u4?start=40",
+"https://www.youtube.com/embed/k9c1vJXn6u4?start=80",
+"https://www.youtube.com/embed/k9c1vJXn6u4?start=120",
+"https://www.youtube.com/embed/k9c1vJXn6u4?start=160",
+"https://www.youtube.com/embed/k9c1vJXn6u4?start=200"
+];
+
+const questionVideos=[
+"https://www.youtube.com/embed/fkMg_X9lHMc",
+"https://www.youtube.com/embed/fkMg_X9lHMc?start=40",
+"https://www.youtube.com/embed/fkMg_X9lHMc?start=80",
+"https://www.youtube.com/embed/fkMg_X9lHMc?start=120",
+"https://www.youtube.com/embed/fkMg_X9lHMc?start=160",
+"https://www.youtube.com/embed/fkMg_X9lHMc?start=200"
+];
+
+const levelsDiv=document.getElementById("levels");
 for(let i=1;i<=30;i++){
   const div=document.createElement("div");
   div.className="level";
   if(i>unlocked) div.classList.add("locked");
-  div.innerText="Level "+i;
+  div.innerText="L"+i;
   div.onclick=()=>{ if(i<=unlocked) startLevel(i); };
   levelsDiv.appendChild(div);
 }
@@ -122,82 +154,65 @@ for(let i=1;i<=30;i++){
 let currentLevel=0;
 let lessonStep=0;
 
+function startApp(){
+  document.getElementById("bgMusic").play();
+}
+
+function toggleMusic(){
+  const music=document.getElementById("bgMusic");
+  music.paused?music.play():music.pause();
+}
+
 function startLevel(level){
+  document.getElementById("clickSound").play();
   currentLevel=level;
   lessonStep=0;
   document.getElementById("lessonBox").style.display="block";
-  showLesson();
+  loadVideo();
 }
 
-function showLesson(){
-  document.getElementById("lessonTitle").innerText="Level "+currentLevel+" - Lesson "+(lessonStep+1);
-  document.getElementById("lessonText").innerText=getLessonText(currentLevel,lessonStep);
-  document.getElementById("lessonImage").src=getLessonImage(currentLevel);
+function loadVideo(){
+  let videoList;
+  if(currentLevel==1) videoList=alphabetVideos;
+  else if(currentLevel==2) videoList=phraseVideos;
+  else if(currentLevel==3) videoList=questionVideos;
+  else videoList=alphabetVideos;
+
+  document.getElementById("lessonTitle").innerText=
+    "Level "+currentLevel+" - Lesson "+(lessonStep+1);
+
+  document.getElementById("videoFrame").src=videoList[lessonStep];
   updateProgress();
 }
 
 function nextLesson(){
+  document.getElementById("clickSound").play();
   lessonStep++;
   if(lessonStep<6){
-    showLesson();
+    loadVideo();
   } else {
-    xp+=15;
-    document.getElementById("xp").innerText=xp;
+    xp+=10;
+    unlocked++;
     localStorage.setItem("xp",xp);
-    if(currentLevel===unlocked){
-      unlocked++;
-      localStorage.setItem("unlocked",unlocked);
-    }
-    confetti();
-    alert("Level Complete! +15 XP 🎉");
+    localStorage.setItem("unlocked",unlocked);
+    alert("Level Complete! +10 XP 🎉");
     location.reload();
   }
 }
 
 function updateProgress(){
-  const percent=(lessonStep/6)*100;
-  document.getElementById("progressBar").style.width=percent+"%";
+  document.getElementById("progressBar").style.width=
+    ((lessonStep)/6)*100+"%";
 }
 
-function getLessonText(level,step){
-  if(level===1) return "Alphabet Sign Practice";
-  if(level===2) return "Common ASL Phrases";
-  if(level===3) return "Daily Questions";
-  return "Advanced Sign Practice";
+function startCamera(){
+  const video=document.getElementById("camera");
+  video.style.display="block";
+  navigator.mediaDevices.getUserMedia({video:true})
+    .then(stream=>video.srcObject=stream);
 }
 
-function getLessonImage(level){
-  if(level===1) return "https://api.dicebear.com/7.x/bottts/svg?seed=alphabet";
-  if(level===2) return "https://api.dicebear.com/7.x/bottts/svg?seed=phrases";
-  if(level===3) return "https://api.dicebear.com/7.x/bottts/svg?seed=questions";
-  return "https://api.dicebear.com/7.x/bottts/svg?seed=level"+level;
-}
-
-function toggleMusic(){
-  const music=document.getElementById("bgMusic");
-  if(music.paused){
-    music.play();
-  } else {
-    music.pause();
-  }
-}
-
-function confetti(){
-  for(let i=0;i<100;i++){
-    let conf=document.createElement("div");
-    conf.style.position="fixed";
-    conf.style.width="8px";
-    conf.style.height="8px";
-    conf.style.background="hsl("+Math.random()*360+",100%,50%)";
-    conf.style.left=Math.random()*100+"%";
-    conf.style.top="-10px";
-    conf.style.opacity=1;
-    conf.style.transition="top 2s linear";
-    document.body.appendChild(conf);
-    setTimeout(()=>{conf.style.top="100%";},10);
-    setTimeout(()=>{conf.remove();},2000);
-  }
-}
+QRCode.toCanvas(document.getElementById('qr'), window.location.href);
 </script>
 
 </body>
