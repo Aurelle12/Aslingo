@@ -1,133 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASLingo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f6f7fb;
-      text-align: center;
-    }
-    header {
-      background: #58cc02;
-      color: white;
-      padding: 20px;
-    }
-    .levels {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      padding: 30px;
-    }
-    .level {
-      background: white;
-      padding: 20px;
-      border-radius: 16px;
-      cursor: pointer;
-      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-    }
-    .level:hover {
-      transform: scale(1.05);
-    }
-    .lesson {
-      display: none;
-      background: white;
-      margin: 20px;
-      padding: 30px;
-      border-radius: 16px;
-    }
-    button {
-      background: #58cc02;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 15px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>SignaPop – Learn ASL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="https://emojiapi.dev/api/v1/sign_of_the_horns/64.png">
+<style>
+body {
+  margin:0;
+  font-family: system-ui, sans-serif;
+  background:#f4f7fb;
+}
+header {
+  background:#58cc02;
+  color:white;
+  padding:20px;
+  text-align:center;
+}
+.levels {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:15px;
+  padding:20px;
+}
+.level {
+  background:white;
+  border-radius:16px;
+  padding:15px;
+  text-align:center;
+  box-shadow:0 8px 15px rgba(0,0,0,.1);
+  cursor:pointer;
+}
+.level.locked {opacity:.4}
+.lessonBox {
+  display:none;
+  background:white;
+  margin:20px;
+  padding:20px;
+  border-radius:16px;
+}
+.lessonBox img {
+  max-width:100%;
+  border-radius:12px;
+}
+button {
+  background:#58cc02;
+  border:none;
+  padding:12px 20px;
+  color:white;
+  border-radius:10px;
+  font-size:16px;
+  margin-top:10px;
+}
+video {
+  width:100%;
+  margin-top:10px;
+  border-radius:12px;
+}
+.qr {
+  text-align:center;
+  margin:20px;
+}
+</style>
 </head>
+
 <body>
 
 <header>
-  <h1>ASLingo</h1>
-  <p>Learn American Sign Language — Duolingo style</p>
+  <h1>🤟 SignaPop</h1>
+  <p>Learn ASL — Levels, Lessons & Practice</p>
 </header>
 
-<div class="levels">
-  <div class="level" onclick="startLesson(1)">
-    <h2>Level 1</h2>
-    <p>Alphabet & Greetings</p>
-  </div>
-  <div class="level" onclick="startLesson(2)">
-    <h2>Level 2</h2>
-    <p>Common Words</p>
-  </div>
-  <div class="level" onclick="startLesson(3)">
-    <h2>Level 3</h2>
-    <p>Simple Sentences</p>
-  </div>
+<div class="qr">
+  <p>📱 Scan to open this site</p>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://aurelle12.github.io/Aslingo/">
 </div>
 
-<div class="lesson" id="lessonBox">
+<div class="levels" id="levels"></div>
+
+<div class="lessonBox" id="lessonBox">
   <h2 id="lessonTitle"></h2>
-  <p id="lessonContent"></p>
-  <button onclick="nextStep()">Next</button>
+  <p id="lessonText"></p>
+  <img id="lessonImage" src="">
+  <video id="camera" autoplay muted></video>
+  <br>
+  <button onclick="nextLesson()">Next Lesson</button>
 </div>
 
 <script>
-  const lessons = {
-    1: {
-      title: "Level 1: Basics",
-      steps: [
-        "👋 This sign means HELLO",
-        "🤟 This sign means I LOVE YOU",
-        "👍 This sign means GOOD / YES"
-      ]
-    },
-    2: {
-      title: "Level 2: Common Words",
-      steps: [
-        "🙏 PLEASE",
-        "❤️ LOVE",
-        "❓ QUESTION"
-      ]
-    },
-    3: {
-      title: "Level 3: Sentences",
-      steps: [
-        "👋❤️ Hello, I love you",
-        "👍🤟 Yes, I love ASL",
-        "🙏👋 Please hello"
-      ]
-    }
-  };
+const levels = [];
+for(let i=1;i<=30;i++){
+  levels.push({
+    title:`Level ${i}`,
+    lessons:[
+      `Lesson 1 of Level ${i}`,
+      `Lesson 2 of Level ${i}`,
+      `Lesson 3 of Level ${i}`,
+      `Lesson 4 of Level ${i}`,
+      `Lesson 5 of Level ${i}`,
+      `Lesson 6 of Level ${i}`
+    ]
+  });
+}
 
-  let currentLesson = [];
-  let step = 0;
+const levelContainer=document.getElementById("levels");
+levels.forEach((lvl,i)=>{
+  const d=document.createElement("div");
+  d.className="level"+(i>5?" locked":"");
+  d.innerHTML=`<h3>${lvl.title}</h3><p>6 Lessons</p>`;
+  d.onclick=()=> i<=5 && startLevel(i);
+  levelContainer.appendChild(d);
+});
 
-  function startLesson(level) {
-    currentLesson = lessons[level].steps;
-    step = 0;
-    document.getElementById("lessonTitle").innerText = lessons[level].title;
-    document.getElementById("lessonContent").innerText = currentLesson[step];
-    document.getElementById("lessonBox").style.display = "block";
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+let currentLevel=0;
+let lessonIndex=0;
+
+function startLevel(i){
+  currentLevel=i;
+  lessonIndex=0;
+  document.getElementById("lessonBox").style.display="block";
+  loadLesson();
+  startCamera();
+}
+
+function loadLesson(){
+  document.getElementById("lessonTitle").innerText=
+    `Level ${currentLevel+1} – Lesson ${lessonIndex+1}`;
+  document.getElementById("lessonText").innerText=
+    levels[currentLevel].lessons[lessonIndex];
+  document.getElementById("lessonImage").src=
+    `https://via.placeholder.com/400x300?text=ASL+Sign`;
+}
+
+function nextLesson(){
+  lessonIndex++;
+  if(lessonIndex<6){
+    loadLesson();
+  } else {
+    document.getElementById("lessonText").innerText="🎉 Level Complete!";
   }
+}
 
-  function nextStep() {
-    step++;
-    if (step < currentLesson.length) {
-      document.getElementById("lessonContent").innerText = currentLesson[step];
-    } else {
-      document.getElementById("lessonContent").innerText = "🎉 Lesson complete!";
-    }
-  }
+function startCamera(){
+  navigator.mediaDevices.getUserMedia({video:true})
+    .then(stream=>{
+      document.getElementById("camera").srcObject=stream;
+    });
+}
 </script>
 
 </body>
