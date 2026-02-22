@@ -185,11 +185,13 @@ showLesson();
 
 function showLesson(){
 document.getElementById("lessonTitle").innerText="Level "+currentLevel+" - Lesson "+(lessonStep+1);
+
 let videoID = lessons[currentLevel] ? lessons[currentLevel][lessonStep] : "AYjFPCHXkj4";
-document.getElementById("lessonVideo").src="https://www.youtube.com/embed/"+videoID;
+
+window.open("https://www.youtube.com/watch?v=" + videoID, "_blank");
+
 updateProgress();
 }
-
 function nextLesson(){
 document.getElementById("clickSound").play();
 lessonStep++;
