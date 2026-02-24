@@ -1,151 +1,258 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>SignaPop – Learn ASL</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="https://emojiapi.dev/api/v1/sign_of_the_horns/64.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignQuest 🐯</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
 <style>
-body {
+body{
   margin:0;
-  font-family: system-ui, sans-serif;
+  font-family:Arial, sans-serif;
   background:#f4f7fb;
+  text-align:center;
 }
-header {
+header{
   background:#58cc02;
   color:white;
-  padding:20px;
-  text-align:center;
-}
-.levels {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:15px;
-  padding:20px;
-}
-.level {
-  background:white;
-  border-radius:16px;
   padding:15px;
-  text-align:center;
-  box-shadow:0 8px 15px rgba(0,0,0,.1);
-  cursor:pointer;
+  position:relative;
 }
-.level.locked {opacity:.4}
-.lessonBox {
+#mascot{
+  position:absolute;
+  left:15px;
+  top:10px;
+  font-size:45px;
+}
+.stats{
+  margin-top:5px;
+  font-size:14px;
+}
+.level-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+  gap:10px;
+  padding:20px;
+}
+.level{
+  background:white;
+  padding:12px;
+  border-radius:15px;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  transition:transform .2s;
+}
+.level:hover{ transform:scale(1.05); }
+.locked{ opacity:0.3; cursor:not-allowed; }
+
+.lesson-box{
   display:none;
   background:white;
   margin:20px;
   padding:20px;
-  border-radius:16px;
+  border-radius:15px;
 }
-.lessonBox img {
-  max-width:100%;
-  border-radius:12px;
-}
-button {
-  background:#58cc02;
+
+button{
+  padding:10px 18px;
   border:none;
-  padding:12px 20px;
-  color:white;
   border-radius:10px;
-  font-size:16px;
-  margin-top:10px;
+  background:#58cc02;
+  color:white;
+  font-size:15px;
+  cursor:pointer;
+  margin:5px;
 }
-video {
+
+.progress{
+  height:15px;
+  background:#ddd;
+  margin:15px;
+  border-radius:10px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:100%;
+  background:#58cc02;
+  width:0%;
+  transition:width .4s ease;
+}
+
+iframe{
   width:100%;
-  margin-top:10px;
-  border-radius:12px;
+  height:250px;
+  border-radius:15px;
 }
-.qr {
-  text-align:center;
-  margin:20px;
+
+#confetti{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
 }
+
+footer{ margin-top:30px; padding:20px; }
 </style>
 </head>
-
 <body>
 
 <header>
-  <h1>🤟 SignaPop</h1>
-  <p>Learn ASL — Levels, Lessons & Practice</p>
+<div id="mascot">🐯🦻</div>
+<h1>SignQuest</h1>
+<div class="stats">
+XP: <span id="xp">0</span> |
+🔥 Streak: <span id="streak">0</span> days
+</div>
+<button onclick="toggleMusic()">🎵 Music</button>
 </header>
 
-<div class="qr">
-  <p>📱 Scan to open this site</p>
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://aurelle12.github.io/Aslingo/">
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+<div class="level-grid" id="levels"></div>
+
+<div class="lesson-box" id="lessonBox">
+<h2 id="lessonTitle"></h2>
+<div id="lessonContent"></div>
+<button onclick="nextLesson()">Next</button>
 </div>
 
-<div class="levels" id="levels"></div>
+<canvas id="confetti"></canvas>
 
-<div class="lessonBox" id="lessonBox">
-  <h2 id="lessonTitle"></h2>
-  <p id="lessonText"></p>
-  <img id="lessonImage" src="">
-  <video id="camera" autoplay muted></video>
-  <br>
-  <button onclick="nextLesson()">Next Lesson</button>
-</div>
+<h3>Scan QR to Open</h3>
+<canvas id="qr"></canvas>
+
+<audio id="bgMusic" loop>
+<source src="https://cdn.pixabay.com/audio/2022/03/15/audio_c8c8a73467.mp3">
+</audio>
 
 <script>
-const levels = [];
-for(let i=1;i<=30;i++){
-  levels.push({
-    title:`Level ${i}`,
-    lessons:[
-      `Lesson 1 of Level ${i}`,
-      `Lesson 2 of Level ${i}`,
-      `Lesson 3 of Level ${i}`,
-      `Lesson 4 of Level ${i}`,
-      `Lesson 5 of Level ${i}`,
-      `Lesson 6 of Level ${i}`
-    ]
-  });
+let xp = parseInt(localStorage.getItem("xp")) || 0;
+let unlocked = parseInt(localStorage.getItem("unlocked")) || 1;
+let streak = parseInt(localStorage.getItem("streak")) || 0;
+let lastVisit = localStorage.getItem("lastVisit");
+
+document.getElementById("xp").innerText = xp;
+document.getElementById("streak").innerText = streak;
+
+const today = new Date().toDateString();
+if(lastVisit !== today){
+  streak++;
+  localStorage.setItem("streak", streak);
+  localStorage.setItem("lastVisit", today);
+  document.getElementById("streak").innerText = streak;
 }
 
-const levelContainer=document.getElementById("levels");
-levels.forEach((lvl,i)=>{
-  const d=document.createElement("div");
-  d.className="level"+(i>5?" locked":"");
-  d.innerHTML=`<h3>${lvl.title}</h3><p>6 Lessons</p>`;
-  d.onclick=()=> i<=5 && startLevel(i);
-  levelContainer.appendChild(d);
-});
+const levelsDiv=document.getElementById("levels");
+for(let i=1;i<=30;i++){
+  const div=document.createElement("div");
+  div.className="level";
+  if(i>unlocked) div.classList.add("locked");
+  div.innerText="Lv "+i;
+  div.onclick=()=>{ if(i<=unlocked) startLevel(i); };
+  levelsDiv.appendChild(div);
+}
 
 let currentLevel=0;
-let lessonIndex=0;
+let lessonStep=0;
 
-function startLevel(i){
-  currentLevel=i;
-  lessonIndex=0;
+function startLevel(level){
+  currentLevel=level;
+  lessonStep=0;
   document.getElementById("lessonBox").style.display="block";
-  loadLesson();
-  startCamera();
+  showLesson();
 }
 
-function loadLesson(){
+function showLesson(){
   document.getElementById("lessonTitle").innerText=
-    `Level ${currentLevel+1} – Lesson ${lessonIndex+1}`;
-  document.getElementById("lessonText").innerText=
-    levels[currentLevel].lessons[lessonIndex];
-  document.getElementById("lessonImage").src=
-    `https://via.placeholder.com/400x300?text=ASL+Sign`;
+  "Level "+currentLevel+" - Lesson "+(lessonStep+1);
+
+  let content=document.getElementById("lessonContent");
+
+  if(currentLevel===1){
+    const videos=[
+      "https://www.youtube.com/embed/AYjFPCHXkj4",
+      "https://www.youtube.com/embed/sHyG7iz3ork"
+    ];
+    if(lessonStep<2){
+      content.innerHTML=`<iframe src="${videos[lessonStep]}" allowfullscreen></iframe>`;
+    } else if(lessonStep===2){
+      content.innerHTML=`<p>What sign means HELLO?</p>
+      <button onclick="quiz(true)">👋</button>
+      <button onclick="quiz(false)">👍</button>`;
+    } else{
+      content.innerHTML="<p>Practice signing A–F ✋</p>";
+    }
+  } else{
+    content.innerHTML="<p>Structured ASL practice for Level "+currentLevel+"</p>";
+  }
+
+  updateProgress();
 }
 
-function nextLesson(){
-  lessonIndex++;
-  if(lessonIndex<6){
-    loadLesson();
-  } else {
-    document.getElementById("lessonText").innerText="🎉 Level Complete!";
+function quiz(correct){
+  if(correct){
+    alert("Correct! 🎉");
+  } else{
+    alert("Try again!");
   }
 }
 
-function startCamera(){
-  navigator.mediaDevices.getUserMedia({video:true})
-    .then(stream=>{
-      document.getElementById("camera").srcObject=stream;
+function nextLesson(){
+  lessonStep++;
+  if(lessonStep<6){
+    showLesson();
+  } else{
+    xp+=20;
+    document.getElementById("xp").innerText=xp;
+    localStorage.setItem("xp",xp);
+    if(currentLevel===unlocked){
+      unlocked++;
+      localStorage.setItem("unlocked",unlocked);
+    }
+    launchConfetti();
+    setTimeout(()=>location.reload(),2000);
+  }
+}
+
+function updateProgress(){
+  document.getElementById("progressBar").style.width=
+  (lessonStep/6)*100+"%";
+}
+
+function toggleMusic(){
+  const m=document.getElementById("bgMusic");
+  m.paused?m.play():m.pause();
+}
+
+QRCode.toCanvas(document.getElementById('qr'), window.location.href);
+
+function launchConfetti(){
+  const canvas=document.getElementById("confetti");
+  const ctx=canvas.getContext("2d");
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  let pieces=[];
+  for(let i=0;i<150;i++){
+    pieces.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height,
+      size:Math.random()*8+2,
+      speed:Math.random()*3+2
     });
+  }
+  let animation=setInterval(()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      ctx.fillStyle=`hsl(${Math.random()*360},100%,50%)`;
+      ctx.fillRect(p.x,p.y,p.size,p.size);
+      p.y+=p.speed;
+      if(p.y>canvas.height) p.y=0;
+    });
+  },20);
+  setTimeout(()=>clearInterval(animation),2000);
 }
 </script>
 
