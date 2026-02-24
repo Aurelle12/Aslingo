@@ -18,15 +18,16 @@ body{
 
 header{
   padding:20px;
-  position:relative;
 }
 
 #mascot{
-  width:90px;
+  width:100px;
+  margin-bottom:10px;
 }
 
 .stats{
   margin-top:10px;
+  font-size:14px;
 }
 
 #hearts{
@@ -36,7 +37,7 @@ header{
 
 .level-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(85px,1fr));
   gap:10px;
   padding:20px;
 }
@@ -46,6 +47,11 @@ header{
   padding:12px;
   border-radius:15px;
   cursor:pointer;
+  transition:0.2s;
+}
+
+.level:hover{
+  transform:scale(1.05);
 }
 
 .locked{
@@ -71,27 +77,37 @@ button{
   color:white;
   cursor:pointer;
   margin:5px;
+  font-weight:bold;
 }
 
 .progress{
   height:10px;
   background:#1e3a8a;
-  margin:10px;
+  margin:10px 20px;
   border-radius:10px;
+  overflow:hidden;
 }
 
 .progress-bar{
   height:100%;
   background:#14b8a6;
   width:0%;
+  transition:0.3s;
 }
 
+footer{
+  margin-top:30px;
+  padding:20px;
+  font-size:12px;
+  opacity:0.8;
+}
 </style>
 </head>
+
 <body>
 
 <header>
-<img id="mascot" src="https://i.imgur.com/VuV3K6F.png">
+<img id="mascot" src="https://i.imgur.com/VuV3K6F.png" alt="Diego the Tiger">
 <h1>ASLteen</h1>
 
 <div class="stats">
@@ -100,7 +116,7 @@ XP: <span id="xp">0</span> |
 <div id="hearts">❤️❤️❤️❤️❤️</div>
 </div>
 
-<button onclick="toggleMusic()">🎵 Music</button>
+<button onclick="toggleMusic()">🎵 Toggle Music</button>
 </header>
 
 <div class="progress">
@@ -110,12 +126,12 @@ XP: <span id="xp">0</span> |
 <div class="level-grid" id="levels"></div>
 
 <div class="lesson" id="lessonBox">
-<h2>Level 1 – Alphabet A</h2>
-<p>Practice the sign for A</p>
-<button onclick="nextLesson()">Complete Lesson</button>
+<h2>Level 1 – Alphabet Practice</h2>
+<p>Complete this lesson to earn XP.</p>
+<button onclick="completeLesson()">Complete Lesson</button>
 </div>
 
-<h3>Scan QR Code</h3>
+<h3>Scan to Open on Another Device</h3>
 <canvas id="qr"></canvas>
 
 <audio id="music" loop>
@@ -136,10 +152,12 @@ if(localStorage.getItem("lastVisit") !== today){
   streak++;
   localStorage.setItem("streak", streak);
   localStorage.setItem("lastVisit", today);
-  document.getElementById("streak").innerText = streak;
 }
 
+document.getElementById("streak").innerText = streak;
+
 const levelsDiv = document.getElementById("levels");
+
 for(let i=1;i<=30;i++){
   let div = document.createElement("div");
   div.className="level";
@@ -153,21 +171,28 @@ function startLesson(){
   document.getElementById("lessonBox").style.display="block";
 }
 
-function nextLesson(){
-  xp+=10;
+function completeLesson(){
+  xp += 10;
   localStorage.setItem("xp", xp);
   document.getElementById("xp").innerText = xp;
-  alert("Lesson Complete! +10 XP 🎉");
+
+  document.getElementById("progressBar").style.width = "100%";
+
+  alert("Great job! +10 XP 🎉");
 }
 
 function toggleMusic(){
-  const m=document.getElementById("music");
+  const m = document.getElementById("music");
   m.paused ? m.play() : m.pause();
 }
 
 QRCode.toCanvas(document.getElementById('qr'), window.location.href);
 
 </script>
+
+<footer>
+ASLteen – Built for Learning Sign Language
+</footer>
 
 </body>
 </html>
