@@ -8,98 +8,95 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
 <style>
-body{
+:root {
+  --blue: #2563eb;
+  --red: #ef4444;
+}
+
+body {
   margin:0;
-  font-family:Arial, sans-serif;
-  background:linear-gradient(135deg,#0f766e,#1e3a8a);
-  color:white;
+  font-family: Arial, sans-serif;
+  background:#f8fafc;
   text-align:center;
 }
 
-header{
+header {
+  background: linear-gradient(135deg, var(--blue), var(--red));
+  color:white;
   padding:20px;
 }
 
-#mascot{
-  width:100px;
-  margin-bottom:10px;
+#mascot {
+  width:90px;
 }
 
-.stats{
+.stats {
   margin-top:10px;
-  font-size:14px;
 }
 
-#hearts{
+#hearts {
   font-size:22px;
-  color:#ef4444;
+  color:var(--red);
 }
 
-.level-grid{
+.level-grid {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(85px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
   gap:10px;
   padding:20px;
 }
 
-.level{
-  background:#2563eb;
+.level {
+  background:var(--blue);
+  color:white;
   padding:12px;
-  border-radius:15px;
+  border-radius:12px;
   cursor:pointer;
-  transition:0.2s;
 }
 
-.level:hover{
-  transform:scale(1.05);
-}
-
-.locked{
-  background:#555;
-  opacity:0.4;
+.locked {
+  background:#94a3b8;
+  opacity:0.5;
   cursor:not-allowed;
 }
 
-.lesson{
+.lesson {
   display:none;
   background:white;
-  color:#0f766e;
   margin:20px;
   padding:25px;
-  border-radius:20px;
+  border-radius:15px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
-button{
-  background:#ef4444;
+button {
+  background:var(--red);
   border:none;
-  padding:10px 20px;
-  border-radius:12px;
+  padding:10px 18px;
+  border-radius:10px;
   color:white;
   cursor:pointer;
   margin:5px;
   font-weight:bold;
 }
 
-.progress{
+.progress {
   height:10px;
-  background:#1e3a8a;
-  margin:10px 20px;
+  background:#ddd;
+  margin:15px 20px;
   border-radius:10px;
   overflow:hidden;
 }
 
-.progress-bar{
+.progress-bar {
   height:100%;
-  background:#14b8a6;
+  background:var(--red);
   width:0%;
   transition:0.3s;
 }
 
-footer{
-  margin-top:30px;
-  padding:20px;
-  font-size:12px;
-  opacity:0.8;
+audio {
+  display:none;
 }
 </style>
 </head>
@@ -107,7 +104,7 @@ footer{
 <body>
 
 <header>
-<img id="mascot" src="https://i.imgur.com/VuV3K6F.png" alt="Diego the Tiger">
+<img id="mascot" src="https://i.imgur.com/VuV3K6F.png" alt="Diego">
 <h1>ASLteen</h1>
 
 <div class="stats">
@@ -116,7 +113,7 @@ XP: <span id="xp">0</span> |
 <div id="hearts">❤️❤️❤️❤️❤️</div>
 </div>
 
-<button onclick="toggleMusic()">🎵 Toggle Music</button>
+<button onclick="toggleMusic()">🎵 Music</button>
 </header>
 
 <div class="progress">
@@ -126,12 +123,12 @@ XP: <span id="xp">0</span> |
 <div class="level-grid" id="levels"></div>
 
 <div class="lesson" id="lessonBox">
-<h2>Level 1 – Alphabet Practice</h2>
-<p>Complete this lesson to earn XP.</p>
+<h2>Level 1</h2>
+<p>Welcome to ASLteen!</p>
 <button onclick="completeLesson()">Complete Lesson</button>
 </div>
 
-<h3>Scan to Open on Another Device</h3>
+<h3>Scan QR</h3>
 <canvas id="qr"></canvas>
 
 <audio id="music" loop>
@@ -175,24 +172,22 @@ function completeLesson(){
   xp += 10;
   localStorage.setItem("xp", xp);
   document.getElementById("xp").innerText = xp;
-
   document.getElementById("progressBar").style.width = "100%";
-
   alert("Great job! +10 XP 🎉");
 }
 
 function toggleMusic(){
   const m = document.getElementById("music");
-  m.paused ? m.play() : m.pause();
+  if(m.paused){
+    m.play();
+  } else {
+    m.pause();
+  }
 }
 
 QRCode.toCanvas(document.getElementById('qr'), window.location.href);
 
 </script>
-
-<footer>
-ASLteen – Built for Learning Sign Language
-</footer>
 
 </body>
 </html>
