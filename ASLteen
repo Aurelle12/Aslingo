@@ -3,21 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SignQuest 🐯</title>
+<title>ASLteen 🐯</title>
+
+<!-- TensorFlow + MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
 <style>
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:#eef5ff;
+  background:linear-gradient(135deg,#0f766e,#1e3a8a);
+  color:white;
   text-align:center;
 }
 
 header{
-  background:#58cc02;
-  color:white;
-  padding:20px;
+  padding:15px;
   position:relative;
 }
 
@@ -25,18 +30,22 @@ header{
   position:absolute;
   left:15px;
   top:10px;
-  width:80px;
-  animation:bounce 2s infinite;
+  width:90px;
+  transition:.3s;
 }
 
-@keyframes bounce{
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-8px);}
+#speech{
+  background:white;
+  color:#0f766e;
+  padding:10px;
+  border-radius:15px;
+  display:inline-block;
+  margin-top:10px;
+  font-weight:bold;
 }
 
 .stats{
-  margin-top:5px;
-  font-size:14px;
+  margin-top:10px;
 }
 
 .level-grid{
@@ -47,151 +56,207 @@ header{
 }
 
 .level{
-  background:white;
-  padding:12px;
-  border-radius:15px;
+  background:#2563eb;
+  padding:15px;
+  border-radius:20px;
   cursor:pointer;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  transition:.2s;
 }
 
-.level:hover{ transform:scale(1.05); }
+.locked{
+  background:#555;
+  opacity:.4;
+  cursor:not-allowed;
+}
 
-.locked{ opacity:0.3; cursor:not-allowed; }
-
-.lesson-box{
-  display:none;
+.card{
   background:white;
+  color:#0f766e;
   margin:20px;
-  padding:20px;
-  border-radius:15px;
+  padding:30px;
+  border-radius:20px;
+  font-size:50px;
 }
 
 button{
-  padding:10px 18px;
+  background:#ef4444;
   border:none;
-  border-radius:10px;
-  background:#58cc02;
+  padding:10px 20px;
+  border-radius:15px;
   color:white;
-  font-size:15px;
+  font-size:16px;
   cursor:pointer;
   margin:5px;
 }
 
-iframe{
+#hearts{
+  font-size:25px;
+  color:#ef4444;
+}
+
+video{
   width:100%;
-  height:250px;
-  border-radius:15px;
+  max-width:400px;
+  border-radius:20px;
+  margin-top:10px;
+}
+
+canvas{
+  display:none;
 }
 
 .progress{
-  height:15px;
-  background:#ddd;
-  margin:15px;
+  height:10px;
+  background:#1e3a8a;
+  margin:10px;
   border-radius:10px;
-  overflow:hidden;
 }
 
 .progress-bar{
   height:100%;
-  background:#58cc02;
+  background:#14b8a6;
   width:0%;
-  transition:width .4s ease;
 }
-
-footer{margin-top:30px;padding:20px;}
 </style>
 </head>
 <body>
 
 <header>
-<img id="mascot" src="https://i.imgur.com/6X4GQ5P.png">
-<h1>SignQuest</h1>
+<img id="mascot" src="https://i.imgur.com/VuV3K6F.png">
+<h1>ASLteen</h1>
+<div id="speech">Ready to train? Let’s go.</div>
 <div class="stats">
 XP: <span id="xp">0</span> |
 🔥 Streak: <span id="streak">0</span>
+<div id="hearts">❤️❤️❤️❤️❤️</div>
 </div>
-<button onclick="toggleMusic()">🎵 Toggle Music</button>
+<button onclick="toggleMusic()">🎵 Music</button>
 </header>
 
 <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
 
 <div class="level-grid" id="levels"></div>
 
-<div class="lesson-box" id="lessonBox">
-<h2 id="lessonTitle"></h2>
-<div id="lessonContent"></div>
-<button onclick="nextLesson()">Next</button>
+<div id="lessonArea" style="display:none;">
+<div class="card" id="cardLetter">A</div>
+<button onclick="startCamera()">Start Camera</button>
+<video id="video" autoplay playsinline></video>
+<button onclick="checkSign()">Check Sign</button>
 </div>
 
 <h3>Scan QR to Open</h3>
 <canvas id="qr"></canvas>
 
-<audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b6f18.mp3?filename=relaxing-145038.mp3"></audio>
+<audio id="bgMusic" loop>
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b6f18.mp3?filename=relaxing-145038.mp3">
+</audio>
 
 <script>
-let xp = parseInt(localStorage.getItem("xp")) || 0;
-let unlocked = parseInt(localStorage.getItem("unlocked")) || 1;
-let streak = parseInt(localStorage.getItem("streak")) || 0;
+
+let xp=parseInt(localStorage.getItem("xp"))||0;
+let streak=parseInt(localStorage.getItem("streak"))||0;
+let lastLogin=localStorage.getItem("lastLogin");
+let hearts=5;
+let currentLetterIndex=0;
+const alphabet=["A","B","C","D","E","F"];
 
 document.getElementById("xp").innerText=xp;
 document.getElementById("streak").innerText=streak;
 
-const levelsDiv=document.getElementById("levels");
+const today=new Date().toDateString();
+if(lastLogin!==today){
+  streak++;
+  localStorage.setItem("streak",streak);
+  localStorage.setItem("lastLogin",today);
+  document.getElementById("speech").innerText="Consistency! I like it.";
+}
 
-for(let i=1;i<=10;i++){
-  const div=document.createElement("div");
+const levelsDiv=document.getElementById("levels");
+for(let i=1;i<=30;i++){
+  let div=document.createElement("div");
   div.className="level";
-  if(i>unlocked) div.classList.add("locked");
+  if(i>1) div.classList.add("locked");
   div.innerText="Level "+i;
-  div.onclick=()=>{ if(i<=unlocked) startLevel(i); };
+  div.onclick=()=>{ if(i===1) startLevel(); };
   levelsDiv.appendChild(div);
 }
 
-let currentLevel=0;
-
-function startLevel(level){
-  currentLevel=level;
-  document.getElementById("lessonBox").style.display="block";
-  showLesson();
+function startLevel(){
+  document.getElementById("lessonArea").style.display="block";
+  updateCard();
 }
 
-function showLesson(){
-  document.getElementById("lessonTitle").innerText="Level "+currentLevel;
-
-  const videos={
-    1:"https://www.youtube.com/embed/AYjFPCHXkj4",
-    2:"https://www.youtube.com/embed/sHyG7iz3ork",
-    3:"https://www.youtube.com/embed/3KJH1bJ9yqE"
-  };
-
-  if(videos[currentLevel]){
-    document.getElementById("lessonContent").innerHTML=
-      `<iframe src="${videos[currentLevel]}" allowfullscreen></iframe>`;
-  } else{
-    document.getElementById("lessonContent").innerHTML=
-      "<p>Practice common ASL phrases!</p>";
-  }
-
+function updateCard(){
+  document.getElementById("cardLetter").innerText=alphabet[currentLetterIndex];
   document.getElementById("progressBar").style.width=
-    (currentLevel/unlocked)*100+"%";
+  (currentLetterIndex/alphabet.length)*100+"%";
 }
 
-function nextLesson(){
-  xp+=20;
-  unlocked++;
+function loseHeart(){
+  hearts--;
+  document.getElementById("hearts").innerText="❤️".repeat(hearts);
+  document.getElementById("speech").innerText="Focus. You’ve got this.";
+  if(hearts<=0){
+    alert("Out of hearts! Restart level.");
+    location.reload();
+  }
+}
+
+function winPoint(){
+  xp+=10;
   localStorage.setItem("xp",xp);
-  localStorage.setItem("unlocked",unlocked);
-  location.reload();
+  document.getElementById("xp").innerText=xp;
+  document.getElementById("speech").innerText="YES! That’s sharp.";
+  currentLetterIndex++;
+  if(currentLetterIndex>=alphabet.length){
+    document.getElementById("speech").innerText="Level mastered.";
+  } else{
+    updateCard();
+  }
 }
 
 function toggleMusic(){
-  const music=document.getElementById("bgMusic");
-  music.paused?music.play():music.pause();
+  const m=document.getElementById("bgMusic");
+  m.paused?m.play():m.pause();
 }
 
 QRCode.toCanvas(document.getElementById('qr'), window.location.href);
-</script>
 
+let detector;
+async function initAI(){
+  const model=handPoseDetection.SupportedModels.MediaPipeHands;
+  detector=await handPoseDetection.createDetector(model,{
+    runtime:'tfjs',
+    modelType:'lite'
+  });
+}
+initAI();
+
+async function startCamera(){
+  const video=document.getElementById("video");
+  const stream=await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject=stream;
+  document.getElementById("speech").innerText="Camera active. Show me the sign.";
+}
+
+async function checkSign(){
+  const video=document.getElementById("video");
+  const hands=await detector.estimateHands(video);
+  if(hands.length===0){
+    document.getElementById("speech").innerText="I don’t see your hand.";
+    return;
+  }
+
+  const letter=alphabet[currentLetterIndex];
+
+  if(letter==="A"){
+    winPoint();
+  } else if(letter==="B"){
+    winPoint();
+  } else{
+    loseHeart();
+  }
+}
+
+</script>
 </body>
 </html>
