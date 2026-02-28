@@ -1,5 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASL AI STEM Scanner</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#0f172a,#1e3a8a);
+  color:white;
+  text-align:center;
+}
+
+#tiger{
+  position:fixed;
+  top:10px;
+  right:20px;
+  font-size:70px;
+  transition:0.3s;
+}
+
+#tigerSpeech{
+  position:fixed;
+  top:90px;
+  right:20px;
+  background:#ef4444;
+  padding:10px 15px;
+  border-radius:15px;
+  font-size:14px;
+  max-width:200px;
+}
+
+h1{ color:#ef4444; }
+
+.level-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(80px,1fr));
+  gap:10px;
+  padding:20px;
+}
+
+.level{
+  background:#ef4444;
+  padding:12px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.level:hover{ background:#3b82f6; }
+
+.locked{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
+.lesson{
+  display:none;
+  margin-top:20px;
+}
+
+video{
+  width:360px;
+  border-radius:15px;
+  transform:scaleX(-1);
+}
+
+.bigResult{
+  font-size:40px;
+  margin-top:15px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="tiger">🐯</div>
+<div id="tigerSpeech">Hi! Let's learn ASL!</div>
+
+<h1>ASL AI Recognition System</h1>
+
+<div class="level-grid" id="levels"></div>
+
+<div class="lesson" id="lessonBox">
+<h2 id="lessonTitle"></h2>
+<div id="lessonContent"></div>
+</div>
+
 <script>
 
+// Generate 30 levels
 const container=document.getElementById("levels");
 for(let i=1;i<=30;i++){
   let d=document.createElement("div");
@@ -11,54 +107,58 @@ for(let i=1;i<=30;i++){
 }
 
 let currentTarget="";
-let mode="letters"; // letters OR phrases
-let detectionTimer=null;
-
 const letters=["A","B","C"];
-const phrases=["HELLO","THANK YOU","YES"];
 
 function startLevel(level){
-
   document.getElementById("lessonBox").style.display="block";
   document.getElementById("lessonTitle").innerText="Level "+level;
 
+  if(level===1){
+    document.getElementById("lessonContent").innerHTML=
+    `<iframe width="560" height="315"
+    src="https://www.youtube.com/embed/AYjFPCHXkj4"
+    allowfullscreen></iframe>`;
+    speakTiger("Watch closely! You'll need this!");
+  }
+
   if(level===2){
-    mode="letters";
     beginAIScanner();
   }
 
+  if(level===3){
+    document.getElementById("lessonContent").innerHTML=
+    `<iframe width="560" height="315"
+    src="https://www.youtube.com/embed/RZQTVnzMx4U"
+    allowfullscreen></iframe>`;
+    speakTiger("These phrases are important!");
+  }
+
   if(level===4){
-    mode="phrases";
     beginAIScanner();
   }
 }
 
 async function beginAIScanner(){
 
-  if(mode==="letters"){
-    currentTarget=letters[Math.floor(Math.random()*letters.length)];
-  } else {
-    currentTarget=phrases[Math.floor(Math.random()*phrases.length)];
-  }
+  currentTarget=letters[Math.floor(Math.random()*letters.length)];
 
   document.getElementById("lessonContent").innerHTML=`
-    <p>Sign: <strong>${currentTarget}</strong></p>
+    <p>Sign the letter: <strong>${currentTarget}</strong></p>
     <video id="vid" autoplay playsinline></video>
-    <div id="scanStatus">Requesting camera...</div>
+    <div id="scanStatus">Requesting camera access...</div>
     <div class="bigResult" id="bigResult"></div>
   `;
 
-  speakTiger("Hold your sign steady...");
+  speakTiger("Get ready... I'm scanning!");
 
   const video=document.getElementById("vid");
 
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:true});
-    video.srcObject=stream;
-    document.getElementById("scanStatus").innerText="Scanning...";
+    await navigator.mediaDevices.getUserMedia({video:true});
+    document.getElementById("scanStatus").innerText="Camera active. Scanning...";
   }catch(e){
-    document.getElementById("scanStatus").innerText="Camera blocked!";
-    speakTiger("I need camera permission!");
+    document.getElementById("scanStatus").innerText="Camera permission denied!";
+    speakTiger("Oh no! I need camera access!");
     return;
   }
 
@@ -68,25 +168,18 @@ async function beginAIScanner(){
 
   hands.setOptions({
     maxNumHands:1,
-    minDetectionConfidence:0.7,
-    minTrackingConfidence:0.7
+    minDetectionConfidence:0.8,
+    minTrackingConfidence:0.8
   });
 
   hands.onResults(res=>{
     if(res.multiHandLandmarks.length>0){
-
-      const guess=detectGesture(res.multiHandLandmarks[0]);
+      const guess=detectLetter(res.multiHandLandmarks[0]);
 
       if(guess===currentTarget){
-        if(!detectionTimer){
-          detectionTimer=setTimeout(()=>{
-            showResult(true);
-            detectionTimer=null;
-          },1000); // must hold 1 sec
-        }
-      } else {
-        clearTimeout(detectionTimer);
-        detectionTimer=null;
+        showResult(true);
+      }else{
+        showResult(false);
       }
     }
   });
@@ -106,48 +199,32 @@ function showResult(correct){
     result.innerText="YES! YOU GOT IT!";
     result.style.color="#3b82f6";
     document.getElementById("tiger").innerText="🐯😄";
-    speakTiger("YESSS! That was perfect!");
+    speakTiger("Amazing! You're a superstar!");
   }else{
-    result.innerText="TRY AGAIN!";
+    result.innerText="NO! TRY AGAIN!";
     result.style.color="#ef4444";
     document.getElementById("tiger").innerText="🐯😢";
-    speakTiger("Almost! Adjust your hand.");
+    speakTiger("Not quite! Try adjusting your hand!");
   }
 }
 
-function detectGesture(lm){
+function speakTiger(text){
+  document.getElementById("tigerSpeech").innerText=text;
+}
+
+function detectLetter(lm){
 
   const wrist=lm[0];
   const index=lm[8];
   const middle=lm[12];
-  const thumb=lm[4];
 
-  if(mode==="letters"){
+  if(distance(index,wrist)<0.12 &&
+     distance(middle,wrist)<0.12) return "A";
 
-    if(distance(index,wrist)<0.12 &&
-       distance(middle,wrist)<0.12) return "A";
+  if(index.y<lm[6].y &&
+     middle.y<lm[10].y) return "B";
 
-    if(index.y<lm[6].y &&
-       middle.y<lm[10].y) return "B";
-
-    if(distance(thumb,index)>0.18) return "C";
-
-  }
-
-  if(mode==="phrases"){
-
-    // HELLO (open hand upright)
-    if(index.y<lm[6].y &&
-       middle.y<lm[10].y &&
-       thumb.x<index.x) return "HELLO";
-
-    // THANK YOU (thumb near mouth area)
-    if(distance(thumb,index)<0.08) return "THANK YOU";
-
-    // YES (fist)
-    if(distance(index,wrist)<0.12 &&
-       distance(middle,wrist)<0.12) return "YES";
-  }
+  if(distance(lm[4],lm[8])>0.18) return "C";
 
   return "Unknown";
 }
@@ -156,8 +233,7 @@ function distance(a,b){
   return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
 }
 
-function speakTiger(text){
-  document.getElementById("tigerSpeech").innerText=text;
-}
-
 </script>
+
+</body>
+</html>
