@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ASL AI STEM Project</title>
+<title>ASL AI STEM Scanner</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -21,7 +21,19 @@ body{
   position:fixed;
   top:10px;
   right:20px;
-  font-size:55px;
+  font-size:70px;
+  transition:0.3s;
+}
+
+#tigerSpeech{
+  position:fixed;
+  top:90px;
+  right:20px;
+  background:#ef4444;
+  padding:10px 15px;
+  border-radius:15px;
+  font-size:14px;
+  max-width:200px;
 }
 
 h1{ color:#ef4444; }
@@ -56,12 +68,13 @@ h1{ color:#ef4444; }
 video{
   width:360px;
   border-radius:15px;
-  transform: scaleX(-1); /* mirror visually */
+  transform:scaleX(-1);
 }
 
-.result{
-  font-size:20px;
-  margin-top:10px;
+.bigResult{
+  font-size:40px;
+  margin-top:15px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -69,6 +82,8 @@ video{
 <body>
 
 <div id="tiger">🐯</div>
+<div id="tigerSpeech">Hi! Let's learn ASL!</div>
+
 <h1>ASL AI Recognition System</h1>
 
 <div class="level-grid" id="levels"></div>
@@ -80,90 +95,75 @@ video{
 
 <script>
 
-const levelsContainer = document.getElementById("levels");
-
-// create 30 levels
+// Generate 30 levels
+const container=document.getElementById("levels");
 for(let i=1;i<=30;i++){
-  let div=document.createElement("div");
-  div.className="level";
-  div.innerText="Level "+i;
-
-  if(i>=5){
-    div.classList.add("locked");
-  } else {
-    div.onclick=()=>startLevel(i);
-  }
-
-  levelsContainer.appendChild(div);
+  let d=document.createElement("div");
+  d.className="level";
+  d.innerText="Level "+i;
+  if(i>=5) d.classList.add("locked");
+  else d.onclick=()=>startLevel(i);
+  container.appendChild(d);
 }
 
 let currentTarget="";
-const alphabet=["A","B","C"];
-const phrases=["HELLO","THANK YOU","PLEASE"];
+const letters=["A","B","C"];
 
 function startLevel(level){
-
   document.getElementById("lessonBox").style.display="block";
   document.getElementById("lessonTitle").innerText="Level "+level;
 
   if(level===1){
     document.getElementById("lessonContent").innerHTML=
     `<iframe width="560" height="315"
-    src="https://www.youtube.com/embed/VIDEO_ID_1"
+    src="https://www.youtube.com/embed/AYjFPCHXkj4"
     allowfullscreen></iframe>`;
+    speakTiger("Watch closely! You'll need this!");
   }
 
   if(level===2){
-    startAlphabetAI();
+    beginAIScanner();
   }
 
   if(level===3){
     document.getElementById("lessonContent").innerHTML=
     `<iframe width="560" height="315"
-    src="https://www.youtube.com/embed/VIDEO_ID_2"
+    src="https://www.youtube.com/embed/RZQTVnzMx4U"
     allowfullscreen></iframe>`;
+    speakTiger("These phrases are important!");
   }
 
   if(level===4){
-    startPhraseAI();
+    beginAIScanner();
   }
 }
 
-function startAlphabetAI(){
+async function beginAIScanner(){
 
-  currentTarget = alphabet[Math.floor(Math.random()*alphabet.length)];
+  currentTarget=letters[Math.floor(Math.random()*letters.length)];
 
   document.getElementById("lessonContent").innerHTML=`
     <p>Sign the letter: <strong>${currentTarget}</strong></p>
-    <video id="video" autoplay playsinline></video>
-    <div class="result" id="result">Waiting for hand...</div>
+    <video id="vid" autoplay playsinline></video>
+    <div id="scanStatus">Requesting camera access...</div>
+    <div class="bigResult" id="bigResult"></div>
   `;
 
-  runHandTracking();
-}
+  speakTiger("Get ready... I'm scanning!");
 
-function startPhraseAI(){
+  const video=document.getElementById("vid");
 
-  currentTarget = phrases[Math.floor(Math.random()*phrases.length)];
-
-  document.getElementById("lessonContent").innerHTML=`
-    <p>Perform the phrase: <strong>${currentTarget}</strong></p>
-    <video id="video" autoplay playsinline></video>
-    <div class="result" id="result">
-      AI analyzing movement pattern...
-    </div>
-  `;
-
-  runHandTracking(true);
-}
-
-function runHandTracking(isPhrase=false){
-
-  const video=document.getElementById("video");
+  try{
+    await navigator.mediaDevices.getUserMedia({video:true});
+    document.getElementById("scanStatus").innerText="Camera active. Scanning...";
+  }catch(e){
+    document.getElementById("scanStatus").innerText="Camera permission denied!";
+    speakTiger("Oh no! I need camera access!");
+    return;
+  }
 
   const hands=new Hands({
-    locateFile:file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    locateFile:file=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
   });
 
   hands.setOptions({
@@ -172,78 +172,65 @@ function runHandTracking(isPhrase=false){
     minTrackingConfidence:0.8
   });
 
-  hands.onResults(results=>{
+  hands.onResults(res=>{
+    if(res.multiHandLandmarks.length>0){
+      const guess=detectLetter(res.multiHandLandmarks[0]);
 
-    if(results.multiHandLandmarks.length>0){
-
-      const landmarks=results.multiHandLandmarks[0];
-
-      if(!isPhrase){
-        let detected=classifyLetter(landmarks);
-
-        if(detected===currentTarget){
-          document.getElementById("result").innerHTML=
-          "✅ AI Detected: "+detected+" (Correct!)";
-        } else {
-          document.getElementById("result").innerHTML=
-          "❌ AI Detected: "+detected;
-        }
+      if(guess===currentTarget){
+        showResult(true);
+      }else{
+        showResult(false);
       }
-      else{
-        // Phrase detection (movement-based simulation)
-        document.getElementById("result").innerHTML=
-        "✅ Motion detected — phrase attempt recognized!";
-      }
-
-    } else {
-      document.getElementById("result").innerHTML=
-      "No hand detected...";
     }
-
   });
 
-  const camera=new Camera(video,{
-    onFrame:async()=>{
-      await hands.send({image:video});
-    },
+  new Camera(video,{
+    onFrame:async()=>{await hands.send({image:video});},
     width:360,
     height:270
-  });
-
-  camera.start();
+  }).start();
 }
 
-function classifyLetter(lm){
+function showResult(correct){
 
-  const indexTip=lm[8];
-  const middleTip=lm[12];
+  const result=document.getElementById("bigResult");
+
+  if(correct){
+    result.innerText="YES! YOU GOT IT!";
+    result.style.color="#3b82f6";
+    document.getElementById("tiger").innerText="🐯😄";
+    speakTiger("Amazing! You're a superstar!");
+  }else{
+    result.innerText="NO! TRY AGAIN!";
+    result.style.color="#ef4444";
+    document.getElementById("tiger").innerText="🐯😢";
+    speakTiger("Not quite! Try adjusting your hand!");
+  }
+}
+
+function speakTiger(text){
+  document.getElementById("tigerSpeech").innerText=text;
+}
+
+function detectLetter(lm){
+
   const wrist=lm[0];
+  const index=lm[8];
+  const middle=lm[12];
 
-  // A = fist
-  if(distance(indexTip,wrist)<0.12 &&
-     distance(middleTip,wrist)<0.12){
-    return "A";
-  }
+  if(distance(index,wrist)<0.12 &&
+     distance(middle,wrist)<0.12) return "A";
 
-  // B = fingers extended
-  if(indexTip.y < lm[6].y &&
-     middleTip.y < lm[10].y){
-    return "B";
-  }
+  if(index.y<lm[6].y &&
+     middle.y<lm[10].y) return "B";
 
-  // C = curved (thumb far from index)
-  if(distance(lm[4],lm[8])>0.18){
-    return "C";
-  }
+  if(distance(lm[4],lm[8])>0.18) return "C";
 
   return "Unknown";
 }
 
-function distance(p1,p2){
-  return Math.sqrt(
-    Math.pow(p1.x-p2.x,2)+
-    Math.pow(p1.y-p2.y,2)
-  );
+function distance(a,b){
+  return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
 }
 
 </script>
