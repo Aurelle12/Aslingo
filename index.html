@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ASL AI Vision Game</title>
+<title>ASL Vision AI</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -22,7 +22,7 @@ body{
   position:fixed;
   top:10px;
   right:15px;
-  font-size:60px;
+  font-size:55px;
 }
 
 h1{ color:#ef4444; }
@@ -34,6 +34,7 @@ h1{ color:#ef4444; }
   border-radius:15px;
   cursor:pointer;
   display:inline-block;
+  font-weight:bold;
 }
 
 .level:hover{
@@ -41,9 +42,8 @@ h1{ color:#ef4444; }
 }
 
 video{
-  width:350px;
+  width:360px;
   border-radius:15px;
-  margin-top:10px;
 }
 
 canvas{
@@ -57,14 +57,9 @@ canvas{
   margin-top:20px;
 }
 
-button{
-  background:#ef4444;
-  border:none;
-  padding:10px;
-  border-radius:10px;
-  color:white;
+.result{
+  font-size:20px;
   margin-top:10px;
-  cursor:pointer;
 }
 </style>
 </head>
@@ -72,7 +67,6 @@ button{
 <body>
 
 <div id="tiger">🐯</div>
-
 <h1>ASL AI Recognition System</h1>
 
 <div>
@@ -90,7 +84,7 @@ button{
 <script>
 
 let currentLetter = "";
-const alphabet = ["A","B","C","D","E"];
+const letters = ["A","B","C"];
 
 function startLevel(level){
   document.getElementById("lessonBox").style.display="block";
@@ -104,7 +98,7 @@ function startLevel(level){
   }
 
   if(level===2){
-    startCameraQuiz();
+    startCameraAI();
   }
 
   if(level===3){
@@ -115,64 +109,106 @@ function startLevel(level){
   }
 
   if(level===4){
-    startCameraQuiz();
+    startCameraAI();
   }
 }
 
-function startCameraQuiz(){
+function startCameraAI(){
 
-  currentLetter = alphabet[Math.floor(Math.random()*alphabet.length)];
+  currentLetter = letters[Math.floor(Math.random()*letters.length)];
 
   document.getElementById("lessonContent").innerHTML=`
     <p>Sign the letter: <strong>${currentLetter}</strong></p>
     <video id="video" autoplay></video>
-    <canvas id="output"></canvas>
-    <p id="result"></p>
+    <canvas id="canvas" width="360" height="270"></canvas>
+    <div class="result" id="result">Waiting for hand...</div>
   `;
 
-  const videoElement = document.getElementById('video');
-  const canvasElement = document.getElementById('output');
-  const canvasCtx = canvasElement.getContext('2d');
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
 
   const hands = new Hands({
-    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    locateFile: file =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
   });
 
   hands.setOptions({
     maxNumHands: 1,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.7
+    minDetectionConfidence: 0.8,
+    minTrackingConfidence: 0.8
   });
 
   hands.onResults(results => {
-    canvasCtx.save();
-    canvasCtx.clearRect(0,0,canvasElement.width,canvasElement.height);
-    canvasCtx.drawImage(results.image,0,0,
-      canvasElement.width,canvasElement.height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
     if(results.multiHandLandmarks.length > 0){
-      document.getElementById("result").innerText =
-      "AI detected a hand. Analyzing sign...";
-      
-      // SIMPLIFIED detection example
-      if(currentLetter === "A"){
-        document.getElementById("result").innerText =
-        "AI thinks this might be A!";
+      const landmarks = results.multiHandLandmarks[0];
+
+      let detected = classifyHand(landmarks);
+
+      if(detected === currentLetter){
+        document.getElementById("result").innerHTML =
+        "✅ AI Detected: " + detected + " (Correct!)";
+      } else {
+        document.getElementById("result").innerHTML =
+        "❌ AI Detected: " + detected;
       }
     }
-
-    canvasCtx.restore();
   });
 
-  const camera = new Camera(videoElement,{
+  const camera = new Camera(video,{
     onFrame: async () => {
-      await hands.send({image: videoElement});
+      await hands.send({image: video});
     },
-    width:350,
-    height:300
+    width:360,
+    height:270
   });
   camera.start();
+}
+
+function classifyHand(landmarks){
+
+  // Simple rule-based detection
+
+  const thumbTip = landmarks[4];
+  const indexTip = landmarks[8];
+  const middleTip = landmarks[12];
+  const ringTip = landmarks[16];
+  const pinkyTip = landmarks[20];
+  const wrist = landmarks[0];
+
+  // A = fist (all fingers close to wrist)
+  if(
+    distance(indexTip,wrist) < 0.15 &&
+    distance(middleTip,wrist) < 0.15
+  ){
+    return "A";
+  }
+
+  // B = flat hand (fingers extended upward)
+  if(
+    indexTip.y < landmarks[6].y &&
+    middleTip.y < landmarks[10].y &&
+    ringTip.y < landmarks[14].y &&
+    pinkyTip.y < landmarks[18].y
+  ){
+    return "B";
+  }
+
+  // C = curved hand (thumb + index far apart)
+  if(distance(thumbTip,indexTip) > 0.15){
+    return "C";
+  }
+
+  return "Unknown";
+}
+
+function distance(p1,p2){
+  return Math.sqrt(
+    Math.pow(p1.x - p2.x,2) +
+    Math.pow(p1.y - p2.y,2)
+  );
 }
 
 </script>
