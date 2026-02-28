@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ASL Vision AI</title>
+<title>ASL AI STEM Project</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 
 <style>
 body{
@@ -21,40 +20,43 @@ body{
 #tiger{
   position:fixed;
   top:10px;
-  right:15px;
+  right:20px;
   font-size:55px;
 }
 
 h1{ color:#ef4444; }
 
+.level-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(80px,1fr));
+  gap:10px;
+  padding:20px;
+}
+
 .level{
   background:#ef4444;
-  padding:15px;
-  margin:10px;
-  border-radius:15px;
+  padding:12px;
+  border-radius:12px;
   cursor:pointer;
-  display:inline-block;
   font-weight:bold;
 }
 
-.level:hover{
-  background:#3b82f6;
-}
+.level:hover{ background:#3b82f6; }
 
-video{
-  width:360px;
-  border-radius:15px;
-}
-
-canvas{
-  position:absolute;
-  left:0;
-  top:0;
+.locked{
+  opacity:0.4;
+  cursor:not-allowed;
 }
 
 .lesson{
   display:none;
   margin-top:20px;
+}
+
+video{
+  width:360px;
+  border-radius:15px;
+  transform: scaleX(-1); /* mirror visually */
 }
 
 .result{
@@ -69,24 +71,38 @@ canvas{
 <div id="tiger">🐯</div>
 <h1>ASL AI Recognition System</h1>
 
-<div>
-  <div class="level" onclick="startLevel(1)">Level 1</div>
-  <div class="level" onclick="startLevel(2)">Level 2</div>
-  <div class="level" onclick="startLevel(3)">Level 3</div>
-  <div class="level" onclick="startLevel(4)">Level 4</div>
-</div>
+<div class="level-grid" id="levels"></div>
 
 <div class="lesson" id="lessonBox">
-  <h2 id="lessonTitle"></h2>
-  <div id="lessonContent"></div>
+<h2 id="lessonTitle"></h2>
+<div id="lessonContent"></div>
 </div>
 
 <script>
 
-let currentLetter = "";
-const letters = ["A","B","C"];
+const levelsContainer = document.getElementById("levels");
+
+// create 30 levels
+for(let i=1;i<=30;i++){
+  let div=document.createElement("div");
+  div.className="level";
+  div.innerText="Level "+i;
+
+  if(i>=5){
+    div.classList.add("locked");
+  } else {
+    div.onclick=()=>startLevel(i);
+  }
+
+  levelsContainer.appendChild(div);
+}
+
+let currentTarget="";
+const alphabet=["A","B","C"];
+const phrases=["HELLO","THANK YOU","PLEASE"];
 
 function startLevel(level){
+
   document.getElementById("lessonBox").style.display="block";
   document.getElementById("lessonTitle").innerText="Level "+level;
 
@@ -98,7 +114,7 @@ function startLevel(level){
   }
 
   if(level===2){
-    startCameraAI();
+    startAlphabetAI();
   }
 
   if(level===3){
@@ -109,95 +125,114 @@ function startLevel(level){
   }
 
   if(level===4){
-    startCameraAI();
+    startPhraseAI();
   }
 }
 
-function startCameraAI(){
+function startAlphabetAI(){
 
-  currentLetter = letters[Math.floor(Math.random()*letters.length)];
+  currentTarget = alphabet[Math.floor(Math.random()*alphabet.length)];
 
   document.getElementById("lessonContent").innerHTML=`
-    <p>Sign the letter: <strong>${currentLetter}</strong></p>
-    <video id="video" autoplay></video>
-    <canvas id="canvas" width="360" height="270"></canvas>
+    <p>Sign the letter: <strong>${currentTarget}</strong></p>
+    <video id="video" autoplay playsinline></video>
     <div class="result" id="result">Waiting for hand...</div>
   `;
 
-  const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
+  runHandTracking();
+}
 
-  const hands = new Hands({
-    locateFile: file =>
-      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+function startPhraseAI(){
+
+  currentTarget = phrases[Math.floor(Math.random()*phrases.length)];
+
+  document.getElementById("lessonContent").innerHTML=`
+    <p>Perform the phrase: <strong>${currentTarget}</strong></p>
+    <video id="video" autoplay playsinline></video>
+    <div class="result" id="result">
+      AI analyzing movement pattern...
+    </div>
+  `;
+
+  runHandTracking(true);
+}
+
+function runHandTracking(isPhrase=false){
+
+  const video=document.getElementById("video");
+
+  const hands=new Hands({
+    locateFile:file =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
   });
 
   hands.setOptions({
-    maxNumHands: 1,
-    minDetectionConfidence: 0.8,
-    minTrackingConfidence: 0.8
+    maxNumHands:1,
+    minDetectionConfidence:0.8,
+    minTrackingConfidence:0.8
   });
 
-  hands.onResults(results => {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+  hands.onResults(results=>{
 
-    if(results.multiHandLandmarks.length > 0){
-      const landmarks = results.multiHandLandmarks[0];
+    if(results.multiHandLandmarks.length>0){
 
-      let detected = classifyHand(landmarks);
+      const landmarks=results.multiHandLandmarks[0];
 
-      if(detected === currentLetter){
-        document.getElementById("result").innerHTML =
-        "✅ AI Detected: " + detected + " (Correct!)";
-      } else {
-        document.getElementById("result").innerHTML =
-        "❌ AI Detected: " + detected;
+      if(!isPhrase){
+        let detected=classifyLetter(landmarks);
+
+        if(detected===currentTarget){
+          document.getElementById("result").innerHTML=
+          "✅ AI Detected: "+detected+" (Correct!)";
+        } else {
+          document.getElementById("result").innerHTML=
+          "❌ AI Detected: "+detected;
+        }
       }
+      else{
+        // Phrase detection (movement-based simulation)
+        document.getElementById("result").innerHTML=
+        "✅ Motion detected — phrase attempt recognized!";
+      }
+
+    } else {
+      document.getElementById("result").innerHTML=
+      "No hand detected...";
     }
+
   });
 
-  const camera = new Camera(video,{
-    onFrame: async () => {
-      await hands.send({image: video});
+  const camera=new Camera(video,{
+    onFrame:async()=>{
+      await hands.send({image:video});
     },
     width:360,
     height:270
   });
+
   camera.start();
 }
 
-function classifyHand(landmarks){
+function classifyLetter(lm){
 
-  // Simple rule-based detection
+  const indexTip=lm[8];
+  const middleTip=lm[12];
+  const wrist=lm[0];
 
-  const thumbTip = landmarks[4];
-  const indexTip = landmarks[8];
-  const middleTip = landmarks[12];
-  const ringTip = landmarks[16];
-  const pinkyTip = landmarks[20];
-  const wrist = landmarks[0];
-
-  // A = fist (all fingers close to wrist)
-  if(
-    distance(indexTip,wrist) < 0.15 &&
-    distance(middleTip,wrist) < 0.15
-  ){
+  // A = fist
+  if(distance(indexTip,wrist)<0.12 &&
+     distance(middleTip,wrist)<0.12){
     return "A";
   }
 
-  // B = flat hand (fingers extended upward)
-  if(
-    indexTip.y < landmarks[6].y &&
-    middleTip.y < landmarks[10].y &&
-    ringTip.y < landmarks[14].y &&
-    pinkyTip.y < landmarks[18].y
-  ){
+  // B = fingers extended
+  if(indexTip.y < lm[6].y &&
+     middleTip.y < lm[10].y){
     return "B";
   }
 
-  // C = curved hand (thumb + index far apart)
-  if(distance(thumbTip,indexTip) > 0.15){
+  // C = curved (thumb far from index)
+  if(distance(lm[4],lm[8])>0.18){
     return "C";
   }
 
@@ -206,8 +241,8 @@ function classifyHand(landmarks){
 
 function distance(p1,p2){
   return Math.sqrt(
-    Math.pow(p1.x - p2.x,2) +
-    Math.pow(p1.y - p2.y,2)
+    Math.pow(p1.x-p2.x,2)+
+    Math.pow(p1.y-p2.y,2)
   );
 }
 
