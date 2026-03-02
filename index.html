@@ -15,28 +15,16 @@ body{
   background:linear-gradient(135deg,#0f172a,#1e3a8a);
   color:white;
   text-align:center;
-  overflow-x:hidden;
 }
 
 h1{ color:#ef4444; }
 
-#tiger{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  font-size:70px;
-  transition:0.3s;
-}
-
-#tigerSpeech{
-  position:fixed;
-  bottom:100px;
-  right:20px;
-  background:white;
-  color:black;
-  padding:10px 15px;
-  border-radius:15px;
-  max-width:200px;
+#homeScreen{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
 }
 
 button{
@@ -47,22 +35,11 @@ button{
   border-radius:12px;
   color:white;
   cursor:pointer;
-  margin-top:20px;
 }
 
 button:hover{ background:#3b82f6; }
 
-#homeScreen{
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-}
-
-#mainApp{
-  display:none;
-}
+#mainApp{ display:none; }
 
 .level-grid{
   display:grid;
@@ -97,6 +74,24 @@ video{
   margin-top:20px;
   font-weight:bold;
 }
+
+#tiger{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  font-size:70px;
+}
+
+#tigerSpeech{
+  position:fixed;
+  bottom:110px;
+  right:20px;
+  background:white;
+  color:black;
+  padding:10px 15px;
+  border-radius:15px;
+  max-width:200px;
+}
 </style>
 </head>
 
@@ -111,26 +106,23 @@ video{
 
 <!-- MAIN APP -->
 <div id="mainApp">
-
-<h1>ASL AI Recognition System</h1>
-<div class="level-grid" id="levels"></div>
-
-<div id="lessonBox"></div>
-
+  <h1>ASL AI Recognition System</h1>
+  <div class="level-grid" id="levels"></div>
+  <div id="lessonBox"></div>
 </div>
 
 <div id="tiger">🐯</div>
-<div id="tigerSpeech">Welcome! Click start to begin!</div>
+<div id="tigerSpeech">Welcome! Click start!</div>
 
 <script>
 
 function enterApp(){
   document.getElementById("homeScreen").style.display="none";
   document.getElementById("mainApp").style.display="block";
-  speakTiger("Choose a level to begin!");
+  speakTiger("Choose a level!");
 }
 
-// generate 30 levels
+// CREATE 30 LEVELS
 const container=document.getElementById("levels");
 for(let i=1;i<=30;i++){
   let d=document.createElement("div");
@@ -143,18 +135,44 @@ for(let i=1;i<=30;i++){
 
 let currentTarget="";
 let detectionTimer=null;
+
 const letters=["A","B","C"];
 const phrases=["HELLO","THANK YOU","YES"];
 
 function startLevel(level){
 
+  // LEVEL 1 – Alphabet Video
+  if(level===1){
+    document.getElementById("lessonBox").innerHTML=`
+      <h2>ASL Alphabet Lesson</h2>
+      <iframe width="560" height="315"
+      src="https://www.youtube.com/embed/AYjFPCHXkj4"
+      allowfullscreen></iframe>
+    `;
+    speakTiger("Let's learn the alphabet!");
+  }
+
+  // LEVEL 2 – Letter Scanner
   if(level===2){
     startScanner("letters");
   }
 
+  // LEVEL 3 – Phrases Video
+  if(level===3){
+    document.getElementById("lessonBox").innerHTML=`
+      <h2>Basic ASL Phrases</h2>
+      <iframe width="560" height="315"
+      src="https://www.youtube.com/embed/RZQTVnzMx4U"
+      allowfullscreen></iframe>
+    `;
+    speakTiger("Watch carefully!");
+  }
+
+  // LEVEL 4 – Phrase Scanner
   if(level===4){
     startScanner("phrases");
   }
+
 }
 
 async function startScanner(mode){
@@ -234,7 +252,7 @@ function showResult(correct){
     result.innerText="TRY AGAIN!";
     result.style.color="#ef4444";
     document.getElementById("tiger").innerText="🐯😢";
-    speakTiger("Try adjusting your hand!");
+    speakTiger("Try again!");
   }
 }
 
